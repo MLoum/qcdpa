@@ -3,11 +3,14 @@ import numpy as np
 
 PI = np.pi
 
-#TODO cite Source !
-#Greatly inspired from :
-#http://stackoverflow.com/questions/14016898/port-matlab-bounding-ellipsoid-code-to-python
+
 
 class cavityEllipsoid():
+    """
+    Fits an ellipsoid using MVEE inside a list of point
+    Greatly inspired from :
+    http://stackoverflow.com/questions/14016898/port-matlab-bounding-ellipsoid-code-to-python
+    """
     def __init__(self, points, tol=1 / 1000.0, size='half'):
         self.rx, self.ry, self.rz = 0, 0, 0
         self.ellipseX, self.ellipseY, self.ellipseZ = 0, 0, 0
@@ -18,13 +21,11 @@ class cavityEllipsoid():
         self.size = size
 
         self.MVEE(points, tol)
-        #self.dist2centre(points)
-        self.parameters()
+        self.getEllipsoidParameters()
 
     def MVEE(self, points, tol):
         """
-        Finds the ellipse equation in "center form"
-        (x-c).T * A * (x-c) = 1
+        Moshtagh, N. (2005). Minimum volume enclosing ellipsoids. Convex Optimization, (January), 1–9. http://doi.org/10.1.1.116.7691
         """
         N, d = points.shape
         Q = np.column_stack((points, np.ones(N))).T
@@ -48,16 +49,8 @@ class cavityEllipsoid():
         self.center = c
         self.A = A
 
-    def dist2centre(self, points):
-        """
-        Obtain distance to center coordinates for the entire x,y,z array passed.
-        """
-        self.delta_x, self.delta_y, self.delta_z = (points[:, 0] - self.center[0]), (points[:, 1] - self.center[1]), (
-            points[:, 2] - self.center[2])
-        # Distance entre l'ellipse et l'origine du repère :
-        self.dist = np.sqrt(self.delta_x ** 2 + self.delta_y ** 2 + self.delta_z ** 2)
 
-    def parameters(self):
+    def getEllipsoidParameters(self):
         """
         From wikipédia
         (x-V)T A (x-V) = 1
@@ -71,12 +64,9 @@ class cavityEllipsoid():
         # Also, the singular values in S are square roots of eigenvalues from A At or At A.
         # The singular values are the diagonal entries of the S matrix and are arranged in descending order.
         # The singular values are always real numbers. If the matrix A is a real matrix, then U and V are also real.
-
         U, self.D, self.V = la.svd(self.A)
 
         self.eigenValue, self.principalAxes = la.eig(self.A)
-
-        #w, v = la.eig(A)
 
         #inverse du carré des ->demi<--axes à partir des elements diagonaux de la matrice A
         self.rx, self.ry, self.rz = 1. / np.sqrt(self.D)
@@ -97,9 +87,6 @@ class cavityEllipsoid():
             princAxeX = self.principalAxes[1]
             princAxeY = self.principalAxes[0]
 
-
-        #self.VecZ = self.principalAxes[2]
-
         # Eccentricité et Ellipticité dans le plan :
 
         #L'ellipticité est une mesure de l'aplatissement d'une ellipse. Elle est comprise entre les valeurs 0 et 1,
@@ -114,7 +101,8 @@ class cavityEllipsoid():
             self.ellipticity = 1 - self.b / self.a
         self.volume = (4/3)*PI*self.a*self.b*self.c
 
-    def printData(self):
+    def printParameters(self):
+
         print("pos : ",self.center)
         print("a : ", self.a)
         print("b : ", self.b)
@@ -122,22 +110,4 @@ class cavityEllipsoid():
         print("dir a : ", self.principalAxes[0])
         print("dir b : ", self.principalAxes[1])
         print("dir c : ", self.principalAxes[2])
-
-    def testOrientation(self, v):
-        if(self.a > self.b):
-            alignementFactor = abs(np.dot(self.principalAxes[0], v))
-        else:
-            alignementFactor = abs(np.dot(self.principalAxes[1], v))
-        #pondération par l'ellipticité
-        return (self.ellipticity  * alignementFactor)
-
-
-    def testOrientation_old(self, v):
-        """
-        Ne donne pas les résultats attendus, pb de normalisation ?
-        """
-        axeA = abs(self.a * np.dot(self.principalAxes[0], v))
-        axeB = abs(self.b * np.dot(self.principalAxes[1], v))
-        axeC = abs(self.c * np.dot(self.principalAxes[2], v))
-        return (axeA + axeB + axeC)
 
