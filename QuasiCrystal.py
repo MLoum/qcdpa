@@ -13,6 +13,12 @@ PI = np.pi
 
 class criticalPt:
     def __init__(self, xc, yc, type):
+        """
+        Critical point where the derivative of the profile equals zero
+        :param xc: x position
+        :param yc: y position
+        :param type: minimum, maximum, saddle
+        """
         self.xc = xc
         self.yc = yc
         self.type = type
@@ -21,75 +27,102 @@ class criticalPt:
 class quasiCrystal():
     """
     Main class of the program representing the quasiCrystal as a sum of sinusoidal Gratings.
-    Parameters :
-    - listSinusoidalGrating : list of sinusodialGraing object
-    - minPtSearchResolution :
-    - sizeX : Size in µm in the X direction of the quasiCrystal to reconstruct (and analyse) from a sum of sinusoidal Gratings
-    - sizeY : same as previous parameter, but for Y direction
-    - xOffset : shift in µm for the X direction from the center
-    - yOffset : shift in µm for the Y direction from the center
-    -
     """
-    def __init__(self, listSinusoidalGrating, minPtSearchResolution=0.5, sizeX=3, sizeY=3, xOffset=0, yOffset=0, maxRelativeDiffForEquivalentFilter=0.5,
-                 isFilterEquivalentCavities=True):
+    def __init__(self, list_sinusoidal_grating, min_pt_search_resolution=0.5, sizeX=3, sizeY=3, xOffset=0, yOffset=0, max_relative_diff_for_equivalent_filter=0.1,
+                 is_filter_equivalent_cavities=True):
+        """
+        :param list_sinusoidal_grating: list of sinusodialGrating object
+        :param min_pt_search_resolution: Resolution in µm used during the systematic scan of critical point (derivative equals zero)
+        :param sizeX: Size in µm in the X direction of the quasiCrystal to reconstruct (and analyse) from a sum of sinusoidal Gratings
+        :param sizeY: same as previous parameter, but for Y direction
+        :param xOffset: shift in µm for the X direction from the center
+        :param yOffset: shift in µm for the Y direction from the center
+        :param max_relative_diff_for_equivalent_filter:
+        :param is_filter_equivalent_cavities:
+        """
 
         self.sizeX, self.sizeY = sizeX, sizeY
         self.arrayMin, self.arrayMax, self.arraySad = [], [], []
         self.distMinMin, self.distMinMax, self.distMinSad = [], [], []
         self.xOffset, self.yOffset = xOffset, yOffset
-        self.listCriticalPt = []
-        self.listNanoCavities = []
+        self.list_critical_pt = []
+        self.list_nano_cavities = []
 
-        self.gratings = listSinusoidalGrating
-        self.minPtSearchResolution = minPtSearchResolution
-        self.maxRelativeDiffForEquivalentFilter = maxRelativeDiffForEquivalentFilter
+        self.gratings = list_sinusoidal_grating
+        self.min_pt_search_resolution = min_pt_search_resolution
+        self.max_relative_diff_for_equivalent_filter = max_relative_diff_for_equivalent_filter
 
         print("Searching for critical point")
         self.findCriticalPoint()
-        print("Found %d critical point" % len(self.listCriticalPt))
+        print("Found %d critical point" % len(self.list_critical_pt))
         print("Testing extremum type")
         self.assignExtremumTypeToCriticalPt()
         print("Found %d min" % len(self.arrayMin))
         print("Found %d max" % len(self.arrayMax))
         print("Found %d saddle" % len(self.arraySad))
 
-        print("Creating well object")
+        print("Creating nanoCavities objects")
         self.populateNanoCavities()
-        if (isFilterEquivalentCavities):
-            print('Nbr of wells before isFilterEquivalentCavities =', len(self.listNanoCavities))
+        print('Nbr of nanoCavities found =', len(self.list_nano_cavities))
+        if (is_filter_equivalent_cavities):
+            print('Nbr of nanoCavities before filtering =', len(self.list_nano_cavities))
             self.filterEquivalentCavities()
-            print('Nbr of well types =', len(self.listNanoCavities))
+            print('Nbr of nanoCavities types =', len(self.list_nano_cavities))
+            # self.print_info_cavities()
 
+    def createPerfectSRG(self, nbOfGrating, depth=1, groove=1, negative=False):
+        #FIXME
+        if negative:
+            depth = - depth
+
+        s = np.ones(nbOfGrating) * depth
+        p = np.ones(nbOfGrating) * groove
+        phase = PI / nbOfGrating
+        list_gratings = []
+        for i in range(nbOfGrating):
+            g = sinusoidalGrating(s[i], i * phase, p[i])
+            list_gratings.append(g)
+
+        return quasiCrystal(list_gratings, res, dimX, dimY, offset, offset, tol, is_filter_equivalent_cavities=True)
 
     def findCriticalPoint(self):
         """
-        Scan the quasiCrystal surface with a resolution of self.minPtSearchResolution in order to find local critical point,
+        Scan the quasiCrystal surface with a resolution of self.min_pt_search_resolution in order to find local critical point,
         i.e. points where the first 2D derivative is zero.
-        Put this points in self.listCriticalPt, after being sure that this critical point is not already there
+        Put this points in self.list_critical_pt, after being sure that this critical point is not already there
         """
 
         def distance(xc, yc, pt):
-            return math.sqrt((xc - pt[0]) ** 2 + (yc - pt[1]) ** 2)
+            return math.sqrt((xc - pt[0])**2 + (yc - pt[1])**2)
 
         def findZeroDerivative(p):
             x, y = p
 
-            def partialDx(x, y):
-                sol = 0
-                for g in self.gratings:
-                    sol += g.partialDx(x, y)
-                return sol
+            # def partialDx(x, y):
+            #     sol = 0
+            #     for g in self.gratings:
+            #         sol += g.partialDx(x, y)
+            #     return sol
+            #
+            # def partialDy(x, y):
+            #     sol = 0
+            #     for g in self.gratings:
+            #         sol += g.partialDy(x, y)
+            #     return sol
 
-            def partialDy(x, y):
-                sol = 0
-                for g in self.gratings:
-                    sol += g.partialDy(x, y)
-                return sol
+            Dx = 0
+            for g in self.gratings:
+                Dx += g.partialDx(x, y)
 
-            return (partialDx(x, y), partialDy(x, y))
+            Dy = 0
+            for g in self.gratings:
+                Dy += g.partialDy(x, y)
+
+            return np.array([Dx, Dy])
 
         def jacobian(p):
             x, y = p
+            # x, y = p[0], p[1]
             Dxx = 0
             for g in self.gratings:
                 Dxx += g.partialDxx(x, y)
@@ -104,27 +137,30 @@ class quasiCrystal():
                 Dyy += g.partialDyy(x, y)
             return [[Dxx, Dxy], [Dyx, Dyy]]
 
-        nbPointX = int(self.sizeX / self.minPtSearchResolution)
-        nbPointY = int(self.sizeY / self.minPtSearchResolution)
+        nbPointX = int(self.sizeX / self.min_pt_search_resolution)
+        nbPointY = int(self.sizeY / self.min_pt_search_resolution)
 
-        self.listCriticalPt = []
+        self.list_critical_pt = []
         x0 = self.xOffset
         for idxX in range(nbPointX):
-            x0 += self.minPtSearchResolution
+            x0 += self.min_pt_search_resolution
             y0 = self.yOffset
             for idxY in range(nbPointY):
-                y0 += self.minPtSearchResolution
+                y0 += self.min_pt_search_resolution
+                # res = fsolve(func=findZeroDerivative, x0=np.array([x0, y0]), fprime=jacobian)
+                # res = fsolve(func=findZeroDerivative, x0=np.array([x0, y0]))
+                # print(res)
                 xc, yc = fsolve(func=findZeroDerivative, x0=(x0, y0), args=(), fprime=jacobian)
                 isOK = False
-                if (xc < self.sizeX + self.xOffset) and (xc >  self.xOffset):
-                    if (yc < self.sizeY + self.yOffset) and (yc >  self.yOffset) :
+                if (xc < self.sizeX + self.xOffset) and (xc > self.xOffset):
+                    if (yc < self.sizeY + self.yOffset) and (yc > self.yOffset):
                         isOK = True
                         # Test if the critical point is not already in the self.listCriticalPt list +/- a fraction of the minPtSearchResolution
-                        for pt in self.listCriticalPt:
-                            if (distance(xc, yc, pt) < self.minPtSearchResolution / 5.0):
+                        for pt in self.list_critical_pt:
+                            if (distance(xc, yc, pt) < self.min_pt_search_resolution / 5.0):
                                 isOK = False
                 if (isOK):
-                    self.listCriticalPt.append([xc, yc, "n"])
+                    self.list_critical_pt.append([xc, yc, "n"])
 
     def assignExtremumTypeToCriticalPt(self):
         """
@@ -141,11 +177,11 @@ class quasiCrystal():
         listMax = []
         listSad = []
 
-        for criticalPt in self.listCriticalPt:
+        for criticalPt in self.list_critical_pt:
             xc = criticalPt[0]
             yc = criticalPt[1]
             sDxx = sDyy = sDxy = 0
-            z=0
+            z = 0
             for g in self.gratings:
                 sDxx += g.partialDxx(xc, yc)
                 sDyy += g.partialDyy(xc, yc)
@@ -154,18 +190,18 @@ class quasiCrystal():
 
             D = sDxx * sDyy - (sDxy) ** 2
             if (D > 0) and (sDxx > 0):
-                #Minimum
+                # Minimum
                 # Test if the minimum is not on the edges of the sample, if it is the case, discard this point.
-                if (xc > (self.sizeX + + self.xOffset) * 0.02) and (xc < 0.98 * (self.sizeX + + self.xOffset)):
-                    if (yc > (self.sizeY + self.yOffset) * 0.02) and (yc < 0.98 * (self.sizeY + self.yOffset)):
+                if (xc > self.sizeX*0.02 + self.xOffset) and (xc < 0.98 * self.sizeX - self.xOffset):
+                    if (yc > self.sizeY * 0.02 + self.yOffset ) and (yc < 0.98 * self.sizeY - self.yOffset):
                         listMin.append((xc, yc, z))
                         criticalPt[2] = 'm'
             elif (D > 0) and (sDxx < 0):
-                #Maximum
+                # Maximum
                 listMax.append((xc, yc, z))
                 criticalPt[2] = 'M'
-            elif (D < 0):
-                #Saddle
+            elif D < 0:
+                # Saddle
                 listSad.append((xc, yc, z))
                 criticalPt[2] = 's'
 
@@ -180,8 +216,8 @@ class quasiCrystal():
 
         nbOfMin = np.size(self.arrayMin[:, 0])
         for idxMin in range(nbOfMin):
-            self.listNanoCavities.append(
-                nanoCavity(self.gratings, idxMin, self.arrayMin, self.arrayMax, self.arraySad, self.minPtSearchResolution / 10.0))
+            self.list_nano_cavities.append(
+                nanoCavity(self.gratings, idxMin, self.arrayMin, self.arrayMax, self.arraySad, self.min_pt_search_resolution / 10.0))
 
     def filterEquivalentCavities(self):
         """
@@ -189,15 +225,15 @@ class quasiCrystal():
         Due to the symmetry, if we increase the size of the quasiCrystal (sizeX and sizeX parameters) we will artificially increase the number of cavities.
         """
 
-        #First : eliminate all the cavities that has no neighbors and that have failed the MVEE analysis
-        nbOfCavities = len(self.listNanoCavities)
+        # First : eliminate all the cavities that has no neighbors and that have failed the MVEE analysis
+        nb_of_cavities = len(self.list_nano_cavities)
         i = 0
-        while i < nbOfCavities:
-            if (self.listNanoCavities[i].ellipsoid == -1) \
-                    or (self.listNanoCavities[i].nbOfNeighbors == 0):
-                self.listNanoCavities.pop(i)
+        while i < nb_of_cavities:
+            if (self.list_nano_cavities[i].ellipsoid == -1) \
+                    or (self.list_nano_cavities[i].nbOfNeighbors == 0):
+                self.list_nano_cavities.pop(i)
                 # nbOfwell -= 1 ?
-                nbOfCavities = len(self.listNanoCavities)
+                nb_of_cavities = len(self.list_nano_cavities)
             else:
                 i += 1
 
@@ -208,34 +244,34 @@ class quasiCrystal():
         #   -  The relative difference in ellipsoid volume, eccentricity and ellipticiy are smaller than self.maxRelativeDiffForEquivalentFilter
 
 
-        nbOfCavities = len(self.listNanoCavities)
+        nb_of_cavities = len(self.list_nano_cavities)
         i = 0   #currentCavity
-        while (i < nbOfCavities):
-            j = i + 1   #Closest cavity, since it is in principle the more similar to cavity i
-            while (j < nbOfCavities):
+        while (i < nb_of_cavities):
+            j = i + 1   # Closest cavity, since it is in principle the more similar to cavity i
+            while (j < nb_of_cavities):
                 doFilter = False
 
                 #   -  the same number of neighbors
                 #   -  the same number of Max
                 #   -  the same number of Saddle
-                if (self.listNanoCavities[j].nbOfNeighbors == self.listNanoCavities[i].nbOfNeighbors) \
-                        and (self.listNanoCavities[j].nbOfNeighborsMax == self.listNanoCavities[i].nbOfNeighborsMax) \
-                        and (self.listNanoCavities[j].nbOfNeighborsSad == self.listNanoCavities[i].nbOfNeighborsSad):
+                if (self.list_nano_cavities[j].nbOfNeighbors == self.list_nano_cavities[i].nbOfNeighbors) \
+                        and (self.list_nano_cavities[j].nbOfNeighborsMax == self.list_nano_cavities[i].nbOfNeighborsMax) \
+                        and (self.list_nano_cavities[j].nbOfNeighborsSad == self.list_nano_cavities[i].nbOfNeighborsSad):
 
-                    i_ellipsoid = self.listNanoCavities[i].ellipsoid
-                    j_ellipsoid = self.listNanoCavities[j].ellipsoid
+                    i_ellipsoid = self.list_nano_cavities[i].ellipsoid
+                    j_ellipsoid = self.list_nano_cavities[j].ellipsoid
 
                     #TODO cela ne marche pas si on a une sphère à cause des approx numérique
                     relativeEccentricityDiff = abs(i_ellipsoid.eccentricity - j_ellipsoid.eccentricity) / max(i_ellipsoid.eccentricity, j_ellipsoid.eccentricity)
                     relativeEllipticityDiff = abs(i_ellipsoid.ellipticity - j_ellipsoid.ellipticity) / max(i_ellipsoid.ellipticity, j_ellipsoid.ellipticity)
                     relativeVolumeDiff = abs(i_ellipsoid.volume - j_ellipsoid.volume) / max(i_ellipsoid.volume, j_ellipsoid.volume)
 
-                    if (relativeEccentricityDiff < self.maxRelativeDiffForEquivalentFilter) and (relativeEllipticityDiff < self.maxRelativeDiffForEquivalentFilter) and (relativeVolumeDiff < self.maxRelativeDiffForEquivalentFilter) :
+                    if (relativeEccentricityDiff < self.max_relative_diff_for_equivalent_filter) and (relativeEllipticityDiff < self.max_relative_diff_for_equivalent_filter) and (relativeVolumeDiff < self.max_relative_diff_for_equivalent_filter) :
                         doFilter = True
 
-                if (doFilter):
-                    self.listNanoCavities.pop(j)
-                    nbOfCavities = len(self.listNanoCavities)
+                if doFilter:
+                    self.list_nano_cavities.pop(j)
+                    nb_of_cavities = len(self.list_nano_cavities)
 
                 #NB : if we have filtered th j-th well, no need to do j +=1
                 j += 1
@@ -280,10 +316,39 @@ class quasiCrystal():
     #
     #         print('\n')
 
+    def get_cavities_statistics(self):
+        ellipticity_list = []
+        volume_list = []
 
-    def drawContour(self, nbOfLevel=50, fname=None):
-        X = np.arange(self.xOffset, self.sizeX + self.xOffset, self.minPtSearchResolution)
-        Y = np.arange(self.yOffset, self.sizeY + self.yOffset, self.minPtSearchResolution)
+        vecX = [1, 0, 0]
+        vecY = [0, 1, 0]
+        vecZ = [0, 0, 1]
+
+        listOrientationX = []
+        listOrientationY = []
+        listOrientationZ = []
+
+        for cavity in self.list_nano_cavities:
+            ellipsoid = cavity.ellipsoid
+            ellipticity_list.append(ellipsoid.ellipticity)
+            volume_list.append(ellipsoid.volume)
+
+            listOrientationX.append(ellipsoid.assessOrientationWithStretchConstraint(vecX))
+            listOrientationY.append(ellipsoid.assessOrientationWithStretchConstraint(vecY))
+            listOrientationZ.append(ellipsoid.assessOrientationWithStretchConstraint(vecZ))
+
+        return np.mean(ellipticity_list), np.std(ellipticity_list), np.mean(volume_list), np.std(volume_list), np.mean(listOrientationX), np.std(listOrientationX), np.mean(listOrientationY), np.std(listOrientationY), np.mean(listOrientationZ), np.std(listOrientationZ)
+
+    def drawContour(self, nb_of_level=50, fname=None, title=None, dots_critical=False, dots_cavity=False):
+        """
+        Display function for getting a countour profile od the surface
+        :param nb_of_level: Nb of Level for the countour
+        :param fname: file name
+        :param title: Title for the graph
+        :return:
+        """
+        X = np.arange(self.xOffset, self.sizeX + self.xOffset, self.min_pt_search_resolution)
+        Y = np.arange(self.yOffset, self.sizeY + self.yOffset, self.min_pt_search_resolution)
         X, Y = np.meshgrid(X, Y)
 
         Z = self.gratings[0].getGrattingValue(X, Y)
@@ -291,25 +356,56 @@ class quasiCrystal():
             Z += self.gratings[i].getGrattingValue(X, Y)
 
 
-
         plt.figure()
-        cp = plt.contourf(X, Y, Z, nbOfLevel, cmap=cm.jet)
+        # cp = plt.contourf(X, Y, Z, nb_of_level, cmap=cm.jet)
+        cp = plt.contourf(X, Y, Z, nb_of_level, cmap=cm.Greys)
+        #Only one level
+        #cp = plt.contourf(X, Y, Z, [0, 0.1])
         plt.colorbar(cp)
-        plt.title('Filled Contours Plot')
-        plt.xlabel('x ')
-        plt.ylabel('y ')
+        #plt.title('Filled Contours Plot')
+        plt.xlabel('x (µm)', size=20)
+        plt.ylabel('y (µm)', size=20)
+        if title is not None:
+            plt.title(title, size=20)
+
+        if dots_critical:
+            for crPt in self.list_critical_pt:
+                if crPt[2] == 'm':
+                    plt.scatter(crPt[0], crPt[1], color='b')
+                elif crPt[2] == 's':
+                    plt.scatter(crPt[0], crPt[1], color='g')
+                elif crPt[2] == 'M':
+                    plt.scatter(crPt[0], crPt[1], color='r')
+
+        if dots_cavity:
+            for cavity in self.list_nano_cavities:
+                plt.scatter(cavity.xc, cavity.yc, color='b')
 
         if fname is not None:
             plt.savefig(fname, dpi=600)
         plt.show()
 
-    def drawAllSample(self, dots=True, coat='full', coatalpha=0.5, ellipses=False, wellidx=[], ellipsesalpha=0.5):
+        return cp
+
+    def drawAllQuasiCrystal(self, dots=True, coat='full', coatalpha=0.5, ellipses=False, wellidx=[], ellipsesalpha=0.5, file_save_Path=None, title=None):
+        """
+        Draw the qausi-crystal surface with the critical points and the ellipsoids obtain from MVEE
+
+        :param dots: Draw the criticals point
+        :param coat: How to draw the surface, full or wire
+        :param coatalpha:
+        :param ellipses: Draw the ellipses obtain via MVEE in the nanocavities
+        :param wellidx:
+        :param ellipsesalpha: alpha blending for the ellipse
+        :param file_save_Path: File path for saving the graph
+        :return:
+        """
         fig = plt.figure()
         ax = Axes3D(fig)
-        plt.hold(True)
+        # plt.hold(True)
 
-        X = np.arange(self.xOffset, self.sizeX + self.xOffset, self.minPtSearchResolution)
-        Y = np.arange(self.yOffset, self.sizeY + self.yOffset, self.minPtSearchResolution)
+        X = np.arange(self.xOffset, self.sizeX + self.xOffset, self.min_pt_search_resolution)
+        Y = np.arange(self.yOffset, self.sizeY + self.yOffset, self.min_pt_search_resolution)
         X, Y = np.meshgrid(X, Y)
 
         Z = self.gratings[0].getGrattingValue(X, Y)
@@ -318,12 +414,18 @@ class quasiCrystal():
 
 
         #TODO le scaling, ici on considere l'amplitude max à partir de la somme des réseaux s'ils sont tous en phase
-        ax.set_zlim(-len(self.gratings) - 0.01, len(self.gratings) + 0.01)
-        ax.zaxis.set_major_locator(LinearLocator(10))
-        ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+        #ax.set_zlim(-len(self.gratings) - 0.01, len(self.gratings) + 0.01)
+        # ax.zaxis.set_major_locator(LinearLocator(10))
+        # ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+        ax.set_zticks([])
+
+        ax.set_xlabel("x /µm")
+        ax.set_ylabel("y /µm")
+
+        ax.view_init(60, 120)
 
         if (dots):
-            for crPt in self.listCriticalPt:
+            for crPt in self.list_critical_pt:
                 zc = self.gratings[0].getGrattingValue(crPt[0], crPt[1])
                 for i in range(1, len(self.gratings)):
                     zc += self.gratings[i].getGrattingValue(crPt[0], crPt[1])
@@ -336,8 +438,9 @@ class quasiCrystal():
 
         if (ellipses):
             sin, cos = np.sin, np.cos
-            for idx in wellidx:
-                if (self.listNanoCavities[idx].ellipsoid) and (self.listNanoCavities[idx].ellipsoid != -1):
+            for nano_cavity in self.list_nano_cavities:
+                ellipsoid = nano_cavity.ellipsoid
+                if (ellipsoid) and (ellipsoid != -1):
                     # rx, ry, rz = 1. / np.sqrt(self.listNanoCavities[idx].ellipsoid.D)
                     u, v = np.mgrid[0:2 * PI:20j, -PI / 2:PI / 2:10j]
 
@@ -347,22 +450,40 @@ class quasiCrystal():
                         z = RZ * sin(v)
                         return x, y, z
 
-                    RX = self.listNanoCavities[idx].ellipsoid.a / 2
-                    RY = self.listNanoCavities[idx].ellipsoid.b / 2
-                    RZ = self.listNanoCavities[idx].ellipsoid.c / 2
+                    RX = ellipsoid.a / 2
+                    RY = ellipsoid.b / 2
+                    RZ = ellipsoid.c / 2
                     E = np.dstack(ellipse(RX, RY, RZ, u, v))
-                    E = np.dot(E, self.listNanoCavities[idx].ellipsoid.V) + self.listNanoCavities[idx].ellipsoid.center
+                    E = np.dot(E, ellipsoid.V) + ellipsoid.center
                     x, y, z = np.rollaxis(E, axis=-1)
                     ax.plot_surface(x, y, z, cstride=1, rstride=1, color='y', alpha=ellipsesalpha)
 
         if (coat == 'full'):
             surf = ax.plot_surface(X, Y, Z, rstride=2, cstride=2, cmap=cm.coolwarm, alpha=coatalpha, linewidth=0,
-                                   antialiased=False)
-            fig.colorbar(surf, shrink=0.5, aspect=5)
+                                   antialiased=True)
+            # fig.colorbar(surf, shrink=0.5, aspect=5)
+
         elif (coat == 'wire'):
             ax.plot_surface(X, Y, Z, rstride=2, cstride=2, alpha=coatalpha)
 
+        if title is not None:
+            plt.title(title, size=20)
+
+        if file_save_Path is not None:
+            plt.savefig(file_save_Path, dpi=300)
         plt.show()
+
+    def draw_cavities(self):
+        for cavity in self.list_nano_cavities:
+            cavity.draw(dots=True, coat='full', coatAlpha=0.5, drawEllipsoid=True, ellipseAlpha=0.5)
+
+
+    def print_info_cavities(self):
+        for i in range(len(self.list_nano_cavities)):
+            print("cavity nb :", i)
+            self.list_nano_cavities[i].print_info()
+
+
 
     # def saveFile(self, name='G?', basicinfo=True, MVEE=True):
     #     name1 = name + '_(Basic_stretch' + str(self.stretching * 2) + 'mm_dimX' + str(self.sizeX) + '_dimY' + str(

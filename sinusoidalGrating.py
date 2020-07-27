@@ -5,12 +5,14 @@ PI = np.pi
 
 class sinusoidalGrating:
     """
-    Implement the sinusoidal 2D phase grating with :
-    - s : peak to peak amplitude
-    - alpha : angle of the grating with respect to the x axis
-    - p : pitch of the grating in µm
+    Implement the sinusoidal 2D phase grating
     """
     def __init__(self, s, alpha, p):
+        """
+        :param s: peak to peak amplitude
+        :param alpha: angle of the grating with respect to the x axis
+        :param p: pitch of the grating in µm
+        """
         self.s = s
         self.alpha = alpha
         self.p = p  #in µm
@@ -19,6 +21,11 @@ class sinusoidalGrating:
         return 2 * PI / self.p * (x * np.cos(self.alpha) + y * np.sin(self.alpha))
 
     def getGrattingValue(self, X, Y):
+        """
+        :param X: Typically an array of X position
+        :param Y: Typically an array of Y position
+        :return:
+        """
         return self.s * np.cos(self.getPos(X, Y))
 
     def partialDx(self, x, y):

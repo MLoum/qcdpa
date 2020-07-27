@@ -12,6 +12,11 @@ class cavityEllipsoid():
     http://stackoverflow.com/questions/14016898/port-matlab-bounding-ellipsoid-code-to-python
     """
     def __init__(self, points, tol=1 / 1000.0, size='half'):
+        """
+        :param points:
+        :param tol:
+        :param size:
+        """
         self.rx, self.ry, self.rz = 0, 0, 0
         self.ellipseX, self.ellipseY, self.ellipseZ = 0, 0, 0
         self.A, self.center = [], []
@@ -73,9 +78,6 @@ class cavityEllipsoid():
 
 
 
-
-
-
         #self.a, self.b, self.c = max(self.rx, self.ry), min(self.rx, self.ry), self.rz
         self.a, self.b, self.c = self.rx, self.ry, self.rz
 
@@ -83,26 +85,35 @@ class cavityEllipsoid():
         if self.rx > self.ry:
             princAxeX = self.principalAxes[0]
             princAxeY = self.principalAxes[1]
-        else :
+        else:
             princAxeX = self.principalAxes[1]
             princAxeY = self.principalAxes[0]
 
         # Eccentricité et Ellipticité dans le plan :
 
-        #L'ellipticité est une mesure de l'aplatissement d'une ellipse. Elle est comprise entre les valeurs 0 et 1,
+        # L'ellipticité est une mesure de l'aplatissement d'une ellipse. Elle est comprise entre les valeurs 0 et 1,
         # le premier cas correspondant à un cercle et le second à une ellipse infiniment allongée, c'est - à - dire un segment.
 
 
         if self.a < self.b :
             self.eccentricity = np.sqrt(self.b ** 2 - self.a ** 2) / self.b
             self.ellipticity = 1 - self.a / self.b
-        else :
+        else:
             self.eccentricity = np.sqrt(self.a ** 2 - self.b ** 2) / self.a
             self.ellipticity = 1 - self.b / self.a
         self.volume = (4/3)*PI*self.a*self.b*self.c
 
-    def printParameters(self):
+    def assessOrientationWithStretchConstraint(self, stretchDirectionVector):
+        if(self.a > self.b):
+            alignementFactor = abs(np.dot(self.principalAxes[0], stretchDirectionVector))
+        else:
+            alignementFactor = abs(np.dot(self.principalAxes[1], stretchDirectionVector))
 
+        #ellipiticiy ponderation
+        return (self.ellipticity  * alignementFactor)
+
+
+    def printParameters(self):
         print("pos : ",self.center)
         print("a : ", self.a)
         print("b : ", self.b)

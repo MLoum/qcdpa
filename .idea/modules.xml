@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://C:/TRAVAIL/recherche/article/moi/article en cours/PDMS-Azo/Code/qcdpa/.idea/qcdpa.iml" filepath="C:/TRAVAIL/recherche/article/moi/article en cours/PDMS-Azo/Code/qcdpa/.idea/qcdpa.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/qcdpa.iml" filepath="$PROJECT_DIR$/.idea/qcdpa.iml" />
     </modules>
   </component>
 </project>

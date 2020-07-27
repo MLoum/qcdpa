@@ -20,13 +20,18 @@ class nanoCavity():
     (their positions are inside the arrayMin list)
     """
     def __init__(self, listGrating, minIdx, arrayMin, arrayMax, arraySad, drawResolution=0.05):
+        """
+        :param listGrating:
+        :param minIdx:
+        :param arrayMin:
+        :param arrayMax:
+        :param arraySad:
+        :param drawResolution:
+        """
         self.minIdx = minIdx
         self.Grating = listGrating
         self.drawResolution = drawResolution
-        # self.xc = arrayMin[minIdx, 0]
-        # self.yc = arrayMin[minIdx, 1]
-        # self.zc = arrayMin[minIdx, 2]
-        self.xc, self.yc, self.zc  = arrayMin[minIdx, :]
+        self.xc, self.yc, self.zc = arrayMin[minIdx, :]
         self.nbOfNeighborsMax, self.nbOfNeighborsSad, self.nbOfNeighbors = 0, 0, 0
         self.distNextMinSquared, self.heightMin, self.heightMax, self.widthMax, self.widthMin = 0, 0, 0, 0, 0
         self.neighbors, self.dist2Min,  = [], []
@@ -52,22 +57,21 @@ class nanoCavity():
         #    D²   =  (      x_c²        -            x_i² )²     +   (      y_c²        -            y_i² )²
         # distLim = (arrayMin[idxMin, 0]  - arrayMin[:, 0]) ** 2 +  (arrayMin[idxMin, 1]  - arrayMin[:, 1]) ** 2
 
-        #x_c = arrayMin[idxMin, 0]
-        #y_c = arrayMin[idxMin, 1]
-        #x_i = arrayMin[:, 1]
-        #y_i = arrayMin[:, 1]
+        x_c, y_c = self.xc, self.yc
+        x_i = arrayMin[:, 0]
+        y_i = arrayMin[:, 1]
 
-        #DsquareArray = (x_c - x_i) ** 2 +  (y_c - y_i) ** 2
+        DsquareArray = (x_c - x_i) ** 2 +  (y_c - y_i) ** 2
 
 
-        distLim = arrayMin[idxMin, 0] ** 2 + arrayMin[idxMin, 1] ** 2 + arrayMin[:, 1] ** 2 + arrayMin[:, 0] ** 2 \
-                  - 2 * (arrayMin[idxMin, 0] * arrayMin[:, 0] + arrayMin[idxMin, 1] * arrayMin[:, 1])
+        # distLim = arrayMin[idxMin, 0] ** 2 + arrayMin[idxMin, 1] ** 2 + arrayMin[:, 1] ** 2 + arrayMin[:, 0] ** 2 \
+        #           - 2 * (arrayMin[idxMin, 0] * arrayMin[:, 0] + arrayMin[idxMin, 1] * arrayMin[:, 1])
 
-        distLim[:].sort()
+        DsquareArray[:].sort()
 
 
         #NB : distLim[0] is the distance between the cavity and itself and is of course D²=0
-        self.distNextMinSquared = distLim[1]
+        self.distNextMinSquared = DsquareArray[1]
 
     def findNeighbors(self, arrayMin, arrayMax, arraySad):
         """
@@ -75,31 +79,31 @@ class nanoCavity():
         et aussi le point iMin et les Saddle en enmployant la même formule que dans 'findDistLim'.
         Enduite on cherche les indices des distances Max ou Sad inférieur à la distance limite
         Enfin on crée un tableau 'neighbors' contenant les x et y des points au indices concernés
+        :param arrayMin:
+        :param arrayMax:
+        :param arraySad:
+        :return:
         """
-        #x_c = arrayMin[idxMin, 0]
-        #y_c = arrayMin[idxMin, 1]
+
+        x_c, y_c = self.xc, self.yc
+
+        x_max_i = arrayMax[:, 0]
+        y_max_i = arrayMax[:, 1]
+        dist2AllMax = (x_c - x_max_i) ** 2 +  (y_c - y_max_i) ** 2
 
 
-        #x_max_i = arrayMax[:, 0]
-        #y_max_i = arrayMax[:, 1]
-        #dist2AllMax = (x_c - x_max_i) ** 2 +  (y_c - y_max_i) ** 2
-
-
-
-        dist2AllMax = arrayMin[self.minIdx, 0] ** 2 + arrayMin[self.minIdx, 1] ** 2 + arrayMax[:, 0] ** 2 \
-                      + arrayMax[:, 1] ** 2 - 2 * (
-            arrayMin[self.minIdx, 0] * arrayMax[:, 0] + arrayMin[self.minIdx, 1] * arrayMax[:, 1])
+        # dist2AllMax = arrayMin[self.minIdx, 0] ** 2 + arrayMin[self.minIdx, 1] ** 2 + arrayMax[:, 0] ** 2 \
+        #               + arrayMax[:, 1] ** 2 - 2 * (
+        #     arrayMin[self.minIdx, 0] * arrayMax[:, 0] + arrayMin[self.minIdx, 1] * arrayMax[:, 1])
         idxMax = np.where(dist2AllMax < self.distNextMinSquared)
         neighborsMax = arrayMax[idxMax[0], :]
 
-        #x_sad_i = arrayMax[:, 0]
-        #y_sad_i = arrayMax[:, 1]
-        #dist2AllSad = (x_c - x_sad_i) ** 2 +  (y_c - y_sad_i) ** 2
+        x_sad_i = arraySad[:, 0]
+        y_sad_i = arraySad[:, 1]
+        dist2AllSad = (x_c - x_sad_i) ** 2 +  (y_c - y_sad_i) ** 2
 
 
-        dist2AllSad = arrayMin[self.minIdx, 0] ** 2 + arrayMin[self.minIdx, 1] ** 2 + arraySad[:, 0] ** 2 \
-                      + arraySad[:, 1] ** 2 - 2 * (
-            arrayMin[self.minIdx, 0] * arraySad[:, 0] + arrayMin[self.minIdx, 1] * arraySad[:, 1])
+        #dist2AllSad = arrayMin[self.minIdx, 0] ** 2 + arrayMin[self.minIdx, 1] ** 2 + arraySad[:, 0] ** 2 + arraySad[:, 1] ** 2 - 2 * (arrayMin[self.minIdx, 0] * arraySad[:, 0] + arrayMin[self.minIdx, 1] * arraySad[:, 1])
         idxSad = np.where(dist2AllSad < self.distNextMinSquared)
         neighborsSad = arraySad[idxSad[0], :]
 
@@ -111,7 +115,7 @@ class nanoCavity():
 
         for j in range(len(neighborsMax)):
             #TODO A 2D tester si point plus près et plus haut qui "masque" ce voisin.
-            toAppend = False
+            # toAppend = False
             self.neighbors.append((neighborsMax[j, 0], neighborsMax[j, 1], neighborsMax[j, 2]))
         for i in range(len(neighborsSad)):
             self.neighbors.append((neighborsSad[i, 0], neighborsSad[i, 1], neighborsSad[i, 2]))
@@ -133,17 +137,27 @@ class nanoCavity():
             #add the minimum of the cavity  to the MVEE points
             center = np.array([[self.xc, self.yc, self.zc]])
             mveePoints = np.vstack((self.neighbors, center))
+
+            # mveePoints = self.neighbors
             self.ellipsoid = cavityEllipsoid(mveePoints)
         else:
             self.ellipsoid = -1
 
 
 
-    def drawWell(self, dots=True, coat='full', coatAlpha=0.5, drawEllipsoid=False, ellipseAlpha=0.5):
+    def draw(self, dots=True, coat='full', coatAlpha=0.5, drawEllipsoid=False, ellipseAlpha=0.5):
+        """
+        :param dots:
+        :param coat:
+        :param coatAlpha:
+        :param drawEllipsoid:
+        :param ellipseAlpha:
+        :return:
+        """
         if (self.nbOfNeighbors != 0):
             fig = plt.figure()
             ax = Axes3D(fig)
-            plt.hold(True)
+            # plt.hold(True)
 
             distNextMin = np.sqrt(self.distNextMinSquared)
             X = np.arange(self.xc - distNextMin, self.xc + distNextMin, distNextMin / 20.)
@@ -183,9 +197,14 @@ class nanoCavity():
                 RY = self.ellipsoid.ry
                 RZ = self.ellipsoid.rz
 
+                #cosmetic
+                # RX /=2
+                # RY /= 2
+                # RZ /= 2
+
                 #Stack arrays in sequence depth wise (along third axis). Takes a sequence of
                 # arrays and stack them along the third axis to make a single array
-                E = np.dstack(drawEllipsoid(RX, RY, RZ, u, v))
+                E = np.dstack(ellipse(RX, RY, RZ, u, v))
                 # self.ellipsoid.V comes from the SVD
                 E = np.dot(E, self.ellipsoid.V) + self.ellipsoid.center
                 x, y, z = np.rollaxis(E, axis=-1)
@@ -196,8 +215,8 @@ class nanoCavity():
                 ax.scatter(center[0], center[1], center[2], color='k')
 
                 #Draw the principal axes
-                for v in self.ellipsoid.principalAxes:
-                   ax.plot3D([center[0],v[0] + center[0]], [center[1],v[1] + center[1]], [center[2],v[2] + center[2]], color='red', alpha=0.8, lw=3)
+                # for v in self.ellipsoid.principalAxes:
+                #    ax.plot3D([center[0],v[0] + center[0]], [center[1],v[1] + center[1]], [center[2],v[2] + center[2]], color='red', alpha=0.8, lw=3)
 
             # Draw the topography of the nanoCavity:
             if (coat == 'full'):
@@ -209,10 +228,13 @@ class nanoCavity():
 
         ax.set_xlabel('X axis (µm)')
         ax.set_ylabel('Y axis (µm)')
-        ax.set_zlabel('Z axis')
+        ax.set_zlabel('Z axis (nm)')
         plt.show()
 
 
-    def printInfo(self):
+    def print_info(self):
         print("Center : ", self.xc, self.yc, self.zc)
-        print("Neighbors : ", self.neighbors)
+        print("nb Neighbors : ", len(self.neighbors))
+        if (self.ellipsoid is not None) or self.ellipsoid != -1:
+            print("ellipticity :", self.ellipsoid.ellipticity)
+            print("volume :", self.ellipsoid.volume)
