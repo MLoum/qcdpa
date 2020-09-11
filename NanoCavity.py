@@ -145,7 +145,7 @@ class nanoCavity():
 
 
 
-    def draw(self, dots=True, coat='full', coatAlpha=0.5, drawEllipsoid=False, ellipseAlpha=0.5):
+    def draw(self, dots=True, coat='full', coatAlpha=0.5, drawEllipsoid=False, ellipseAlpha=0.5, title=None, fname=None, is_draw_princ_axes=False):
         """
         :param dots:
         :param coat:
@@ -185,7 +185,7 @@ class nanoCavity():
                 u, v = np.mgrid[0:2 * PI:20j, -PI / 2:PI / 2:10j]
 
 
-                #cf parametric description of an ellipsoid in wikipedia
+                # cf parametric description of an ellipsoid in wikipedia
                 def ellipse(RX, RY, RZ, u, v):
                     x = RX * cos(u) * cos(v)
                     y = RY * sin(u) * cos(v)
@@ -214,27 +214,57 @@ class nanoCavity():
                 #draw the center for the ellipsoid :
                 ax.scatter(center[0], center[1], center[2], color='k')
 
-                #Draw the principal axes
-                # for v in self.ellipsoid.principalAxes:
-                #    ax.plot3D([center[0],v[0] + center[0]], [center[1],v[1] + center[1]], [center[2],v[2] + center[2]], color='red', alpha=0.8, lw=3)
+                if is_draw_princ_axes:
+                    # Draw the principal axes
+                    print("pp axes")
+                    # for v in self.ellipsoid.principalAxes:
+                    #     print (v)
+                    #     # ax.plot3D(xs=[center[0] - v[0], v[0] + center[0]], ys=[center[1] - v[1], v[1] + center[1]], zs=[center[2] - v[2], v[2] + center[2]], color='red', alpha=0.8, lw=5)
+                    #     first_vector = v * self.ellipsoid.rx
+                    #     ax.scatter(first_vector[0], first_vector[1], first_vector[2], color='b')
+                    #     first_vector = v * self.ellipsoid.ry
+                    #     ax.scatter(first_vector[0], first_vector[1], first_vector[2], color='b')
+                    #     ax.scatter(first_vector[0], first_vector[1], first_vector[2], color='b')
+                    x_vector = center + self.ellipsoid.principalAxes[0]*self.ellipsoid.rx
+                    ax.scatter(x_vector[0], x_vector[1], x_vector[2], color='r')
+                    y_vector = center + self.ellipsoid.principalAxes[1]*self.ellipsoid.ry
+                    ax.scatter(y_vector[0], y_vector[1], y_vector[2], color='g')
+                    z_vector = center + self.ellipsoid.principalAxes[2]*self.ellipsoid.rz
+                    ax.scatter(z_vector[0], z_vector[1], z_vector[2], color='b')
 
             # Draw the topography of the nanoCavity:
             if (coat == 'full'):
                 surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, alpha=coatAlpha, cmap=cm.coolwarm, linewidth=0,
                                        antialiased=False)
                 fig.colorbar(surf, shrink=0.5, aspect=5)
+
+                # Draw countour at the bottom
+                # cset = ax.contourf(X, Y, Z, cmap=cm.Greys)
+
             elif (coat == 'wire'):
                 ax.plot_surface(X, Y, Z, rstride=1, cstride=1, alpha=coatAlpha)
+
+
 
         ax.set_xlabel('X axis (µm)')
         ax.set_ylabel('Y axis (µm)')
         ax.set_zlabel('Z axis (nm)')
+
+        if title is not None:
+            plt.title(title)
+
+        if fname is not None:
+            plt.savefig(fname, dpi=300)
+
         plt.show()
 
 
     def print_info(self):
         print("Center : ", self.xc, self.yc, self.zc)
         print("nb Neighbors : ", len(self.neighbors))
+        print("nb Neighbors max : ", self.nbOfNeighborsMax)
+        print("nb Neighbors sad : ", self.nbOfNeighborsSad)
         if (self.ellipsoid is not None) or self.ellipsoid != -1:
-            print("ellipticity :", self.ellipsoid.ellipticity)
+            # print("ellipticity :", self.ellipsoid.ellipticity)
             print("volume :", self.ellipsoid.volume)
+            print("eccentricity :", self.ellipsoid.eccentricity)

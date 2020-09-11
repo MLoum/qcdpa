@@ -101,7 +101,7 @@ class StretchSeries:
             qc = self.SRG_dict[i_s]
             title = "Stretch = " + str(i_s) +  "mm"
             fname = self.name + "_cavities_s" + str(i_s) + ".png"
-            qc.drawAllQuasiCrystal(dots=False, file_save_Path=fname, ellipses=True, title=title)
+            qc.drawAllQuasiCrystal(dots=False, file_save_Path=fname, ellipsoid=True, title=title)
 
     def draw_3D_FromStretchSerie(self, nbStetch, amp, angle, pas):
 
@@ -109,22 +109,22 @@ class StretchSeries:
             qc = self.SRG_dict[i_s]
             title = "Stretch = " + str(i_s) +  "mm"
             fname = self.name + str(i_s) + ".png"
-            qc.drawAllQuasiCrystal(dots=False, coat='full', coatalpha=0.5, ellipses=False, wellidx=[], ellipsesalpha=0.5, file_save_Path=fname)
+            qc.drawAllQuasiCrystal(dots=False, coat='full', coatalpha=0.5, ellipsoid=False, wellidx=[], ellipsesalpha=0.5, file_save_Path=fname)
 
-    def histogram_3D_OfCavityEllipticy(self):
+    def histogram_3D_volume_eccentricity(self):
         for i_s in range(self.nb_stretch):
             listVolume = []
-            listEllipticity = []
+            list_eccentricity = []
             qc = self.SRG_dict[i_s]
             for cavity in qc.list_nano_cavities:
                 ellipsoid = cavity.ellipsoid
                 listVolume.append(ellipsoid.volume)
-                listEllipticity.append(ellipsoid.ellipticity)
+                list_eccentricity.append(ellipsoid.eccentricity)
 
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')
 
-            hist, xedges, yedges = np.histogram2d(listVolume, listEllipticity, bins=(4, 4))
+            hist, xedges, yedges = np.histogram2d(listVolume, list_eccentricity, bins=(4, 4))
             xpos, ypos = np.meshgrid(xedges[:-1] + xedges[1:], yedges[:-1] + yedges[1:])
 
             xpos = xpos.flatten() / 2.
@@ -157,39 +157,45 @@ class StretchSeries:
             # ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors, zsort='average')
             ax.bar3d(xpos, ypos, zpos, dx, dy, dz, zsort='average')
             plt.xlabel("Volume")
-            plt.ylabel("Ellipticity")
+            plt.ylabel("Eccentricity")
             ax.set_zlabel("Occurence")
+            plt.title("Stretch = " + str(i_s) + "mm")
+            fname = self.name + "_histo3D_stretch_" + str(i_s) + ".png"
+            plt.savefig(fname, dpi=300)
             plt.show()
 
     def get_evolution_of_cavity_statistics(self):
         #FIXME
         stretch_value = [0, 1, 2, 3, 4, 5, 6]
-        list_volume_mean, list_volume_std  = [], []
-        list_ellipticity_mean, list_ellipticity_std = [], []
+        list_volume_mean, list_volume_std = [], []
+        list_eccentricity_mean, list_eccentricity_std = [], []
         for i_s in range(self.nb_stretch):
             qc = self.SRG_dict[i_s]
             e_mean, e_std, v_mean, v_std, oX_mean, oX_std, oY_mean, oY_std, oZ_mean, oZ_std = qc.get_cavities_statistics()
             list_volume_mean.append(v_mean)
             list_volume_std.append(v_std)
-            list_ellipticity_mean.append(e_mean)
-            list_ellipticity_std.append(e_std)
+            list_eccentricity_mean.append(e_mean)
+            list_eccentricity_std.append(e_std)
 
-        plt.errorbar(stretch_value, list_volume_mean, yerr=list_volume_std)
-        plt.title("Evolution Volume")
+        plt.errorbar(stretch_value, list_volume_mean, yerr=list_volume_std, fmt="ro")
+        plt.title("Evolution of volume with stretch")
+        plt.xlabel("stretch / mm")
+        plt.ylabel("Volume / $µm^3$ x10-3")
         name = self.name + "evol_volume" + ".png"
-        plt.savefig(name)
+        plt.savefig(name, dpi=300)
         plt.show()
 
-        plt.errorbar(stretch_value, list_ellipticity_mean, yerr=list_ellipticity_std)
-        plt.title("Evolution Ellipticity")
+        plt.errorbar(stretch_value, list_eccentricity_mean, yerr=list_eccentricity_std, fmt="ro")
+        plt.title("Evolution of Eccentricity with stretch")
+        plt.xlabel("stretch / mm")
+        plt.ylabel("Eccentricity")
         name = self.name + "evol_ell" + ".png"
-        plt.savefig(name)
+        plt.savefig(name, dpi=300)
         plt.show()
 
 
-
-    def statisticsOnAlignementWithStretchConstraint(self, amp, pas) :
-        arrayStretch = np.arange(0, nbStetch, 1)
+    def statistics_on_alignement_with_stretch_constraint(self) :
+        stretch_value = [0, 1, 2, 3, 4, 5, 6]
 
         listMeanOrientationX = []
         listMeanOrientationY = []
@@ -199,18 +205,10 @@ class StretchSeries:
         listStdDevOrientationY = []
         listStdDevOrientationZ = []
 
-        vecX = [1, 0, 0]
-        vecY = [0, 1, 0]
-        vecZ = [0, 0, 1]
 
-        for i_s in range(nbStetch):
-            print("Stretch nb :", i_s, "over :", nbStetch)
-            #create Sample
-            listGratings = []
-            phase = PI / nb_gratings
-            for j_g in range(nb_gratings):
-                listGratings.append(sinusoidalGrating(amp[i_s, j_g], j_g * phase, pas[i_s, j_g]))
-            qc = quasiCrystal(listGratings, res, dimX, dimY, offset, offset, tol, filtering=True)
+        for i_s in range(self.nb_stretch):
+            # print("Stretch nb :", i_s, "over :", self.nb_stretch)
+            qc = self.SRG_dict[i_s]
 
             listOrientationX = []
             listOrientationY = []
@@ -218,9 +216,10 @@ class StretchSeries:
 
             for cavity in qc.list_nano_cavities:
                 ellipsoid = cavity.ellipsoid
-                listOrientationX.append(ellipsoid.assessOrientationWithStretchConstraint(vecX))
-                listOrientationY.append(ellipsoid.assessOrientationWithStretchConstraint(vecY))
-                listOrientationZ.append(ellipsoid.assessOrientationWithStretchConstraint(vecZ))
+                o_X, o_Y, o_Z =  ellipsoid.assessOrientationWithStretchConstraint()
+                listOrientationX.append(o_X)
+                listOrientationY.append(o_Y)
+                listOrientationZ.append(o_Z)
 
             listMeanOrientationX.append(np.mean(np.asarray(listOrientationX)))
             listMeanOrientationY.append(np.mean(np.asarray(listOrientationY)))
@@ -230,201 +229,24 @@ class StretchSeries:
             listStdDevOrientationY.append(np.std(np.asarray(listOrientationY)))
             listStdDevOrientationZ.append(np.std(np.asarray(listOrientationZ)))
 
-        # print(arrayStretch)
-        # print(listMeanOrientationX)
-        plt.errorbar(arrayStretch, listMeanOrientationX, yerr=listStdDevOrientationX, marker='o')
+        plt.errorbar(stretch_value, listMeanOrientationX, yerr=listStdDevOrientationX, fmt='ro')
+        plt.xlabel("stretch / mm")
+        plt.ylabel("Orientation X")
+        name = self.name + "orienation_X" + ".png"
+        plt.savefig(name, dpi=300)
         plt.show()
-        plt.errorbar(arrayStretch, listMeanOrientationY, yerr=listStdDevOrientationY, marker='o')
+        plt.errorbar(stretch_value, listMeanOrientationY, yerr=listStdDevOrientationY, fmt='ro')
+        plt.xlabel("stretch / mm")
+        plt.ylabel("Orientation Y")
+        name = self.name + "orientation_Y" + ".png"
+        plt.savefig(name, dpi=300)
         plt.show()
-        plt.errorbar(arrayStretch, listMeanOrientationZ, yerr=listStdDevOrientationZ, marker='o')
-        plt.show()
-
-
-
-    def getCenterCavityWithEllips(self, amp, pas, angle):
-        dim = 5
-        offsetXY = -2.5
-        dimX, dimY, offset, res, tol = dim, dim, offsetXY, 0.1, 0.1
-
-        #firstGrating
-        n = 0
-        listGratings = []
-        nb_gratings = 3
-        for j_g in range(nb_gratings):
-            listGratings.append(sinusoidalGrating(amp[n, j_g], angle[n, j_g], pas[n, j_g]))
-        qc = quasiCrystal(listGratings, res, dimX, dimY, offset, offset, tol, is_filter_equivalent_cavities=False)
-
-        for cavity in qc.list_nano_cavities:
-            if (-0.2 < cavity.xc < 0.2) and (-0.2 < cavity.yc < 0.2):
-                cavity.draw(dots=False, coat='full', coatAlpha=0.5, drawEllipsoid=False, ellipseAlpha=0.2)
-
-#getCenterCavityWithEllips(amp3G, p3G, angle3G)
-
-
-    def evolutionOverStretching(self, amp, pas, angle, nbStetch):
-        arrayStretch = np.arange(0, nbStetch, 1)
-
-        dim = 5
-        offsetXY = -2.5
-        dimX, dimY, offset, res, tol = dim, dim, offsetXY, 0.1, 0.1
-
-        listMeanEllicticity = []
-        listMeanVolume = []
-        listMeanEccentricity = []
-
-        listStdDevEllicticity = []
-        listStdDevVolume = []
-        listStdDevEccentricity = []
-
-        for i_s in range(nbStetch):
-            print("Stretch nb :", i_s, "over :", nbStetch)
-            # create Sample
-            listGratings = []
-            for j_g in range(nb_gratings):
-                # listGratings.append(sinusoidalGrating(amp[i_s, j_g], j_g * phase, pas[i_s, j_g]))
-                listGratings.append(sinusoidalGrating(amp[i_s, j_g], angle3G[i_s, j_g], pas[i_s, j_g]))
-
-            qc = quasiCrystal(listGratings, res, dimX, dimY, offset, offset, tol, is_filter_equivalent_cavities=True)
-
-            listEllicticity = []
-            listVolume = []
-            listEccentricity = []
-
-            for cavity in qc.list_nano_cavities:
-                cavity.draw(dots=True, coat='full', coatAlpha=0.5, drawEllipsoid=True, ellipseAlpha=0.1)
-                ellipsoid = cavity.ellipsoid
-                listEllicticity.append(ellipsoid.ellipticity)
-                listVolume.append(ellipsoid.volume)
-                listEccentricity.append(ellipsoid.eccentricity)
-
-            listMeanEllicticity.append(np.mean(np.asarray(listEllicticity)))
-            listMeanVolume.append(np.mean(np.asarray(listVolume)))
-            listMeanEccentricity.append(np.mean(np.asarray(listEccentricity)))
-
-            listStdDevEllicticity.append(np.std(np.asarray(listEllicticity)))
-            listStdDevVolume.append(np.std(np.asarray(listVolume)))
-            listStdDevEccentricity.append(np.std(np.asarray(listEccentricity)))
-
-
-        # print(arrayStretch)
-        # print(listMeanOrientationX)
-        plt.errorbar(arrayStretch, listMeanEllicticity, yerr=listStdDevEllicticity, marker='o')
-        plt.show()
-        plt.errorbar(arrayStretch, listMeanVolume, yerr=listStdDevVolume, marker='o')
-        plt.show()
-        plt.errorbar(arrayStretch, listMeanEccentricity, yerr=listStdDevEccentricity, marker='o')
+        plt.errorbar(stretch_value, listMeanOrientationZ, yerr=listStdDevOrientationZ, fmt='ro')
+        plt.xlabel("stretch / mm")
+        plt.ylabel("Orientation Z")
+        name = self.name + "orientation_Z" + ".png"
+        plt.savefig(name, dpi=300)
         plt.show()
 
-#evolutionOverStretching(amp3G, p3G, angle3G, 6)
 
 
-
-
-    def evolutionOverStretchingOneCavity(self, amp, pas, angle, nbStetch):
-
-
-        dim = 2
-        offsetXY = -1
-        dimX, dimY, offset, res, tol = dim, dim, offsetXY, 0.1, 0.1
-
-        listEllicticity = []
-        listVolume = []
-        listEccentricity = []
-
-        for i_s in range(nbStetch):
-            print("Stretch nb :", i_s, "over :", nbStetch)
-            # create Sample
-            listGratings = []
-            for j_g in range(nb_gratings):
-                # listGratings.append(sinusoidalGrating(amp[i_s, j_g], j_g * phase, pas[i_s, j_g]))
-                listGratings.append(sinusoidalGrating(amp[i_s, j_g], angle3G[i_s, j_g], pas[i_s, j_g]))
-
-            qc = quasiCrystal(listGratings, res, dimX, dimY, offset, offset, tol, is_filter_equivalent_cavities=True)
-            cs = qc.drawContour(75)
-
-            #Extract level curve
-            #print(cs.collections[0])
-            # print(cs.collections[0].get_paths())
-            #p = cs.collections[0].get_paths()[0]
-            maxLenPath = 0
-            for path in cs.collections[0].get_paths():
-                extent = path.get_extents()
-
-                if extent.contains(0, 0):
-                    p = path
-
-            v = p.vertices
-            x = v[:, 0]
-            y = v[:, 1]
-
-            plt.plot(x,y)
-            plt.show()
-
-            def fitEllipse(x, y):
-                x = x[:, np.newaxis]
-                y = y[:, np.newaxis]
-                D = np.hstack((x * x, x * y, y * y, x, y, np.ones_like(x)))
-                S = np.dot(D.T, D)
-                C = np.zeros([6, 6])
-                C[0, 2] = C[2, 0] = 2;
-                C[1, 1] = -1
-                E, V = eig(np.dot(inv(S), C))
-                n = np.argmax(np.abs(E))
-                a = V[:, n]
-                return a
-
-            def ellipse_center(a):
-                b, c, d, f, g, a = a[1] / 2, a[2], a[3] / 2, a[4] / 2, a[5], a[0]
-                num = b * b - a * c
-                x0 = (c * d - b * f) / num
-                y0 = (a * f - b * d) / num
-                return np.array([x0, y0])
-
-            def ellipse_angle_of_rotation(a):
-                b, c, d, f, g, a = a[1] / 2, a[2], a[3] / 2, a[4] / 2, a[5], a[0]
-                return 0.5 * np.arctan(2 * b / (a - c))
-
-            def ellipse_axis_length(a):
-                b, c, d, f, g, a = a[1] / 2, a[2], a[3] / 2, a[4] / 2, a[5], a[0]
-                up = 2 * (a * f * f + c * d * d + g * b * b - 2 * b * d * f - a * c * g)
-                down1 = (b * b - a * c) * ((c - a) * np.sqrt(1 + 4 * b * b / ((a - c) * (a - c))) - (c + a))
-                down2 = (b * b - a * c) * ((a - c) * np.sqrt(1 + 4 * b * b / ((a - c) * (a - c))) - (c + a))
-                res1 = np.sqrt(up / down1)
-                res2 = np.sqrt(up / down2)
-                return np.array([res1, res2])
-
-            a = fitEllipse(x, y)
-
-            axisLength = ellipse_axis_length(a)
-            print(axisLength)
-            longAxe = max(axisLength[0], axisLength[1])
-            minAxe = min(axisLength[0], axisLength[1])
-            #print(longAxe, minAxe)
-            listEllicticity.append(1 - minAxe/longAxe)
-
-
-        arrayStretch = np.arange(0, len(listEllicticity), 1)
-
-        plt.plot(arrayStretch, listEllicticity, marker='o')
-        plt.show()
-        print(listEllicticity)
-
-        # qc.drawAllQuasiCrystal()
-
-        #     for cavity in qc.listNanoCavities:
-        #         if (-0.2 < cavity.xc < 0.2) and (-0.2 < cavity.yc < 0.2):
-        #             cavity.draw(dots=True, coat='full', coatAlpha=0.5, drawEllipsoid=True, ellipseAlpha=0.1)
-        #             ellipsoid = cavity.ellipsoid
-        #             listEllicticity.append(ellipsoid.ellipticity)
-        #             listVolume.append(ellipsoid.volume)
-        #             listEccentricity.append(ellipsoid.eccentricity)
-        #
-        # # print(arrayStretch)
-        # # print(listMeanOrientationX)
-        # arrayStretch = np.arange(0, len(listEllicticity), 1)
-        # plt.plot(arrayStretch, listEllicticity, marker='o')
-        # plt.show()
-        # plt.plot(arrayStretch, listVolume, marker='o')
-        # plt.show()
-        # plt.plot(arrayStretch, listEccentricity, marker='o')
-        # plt.show()

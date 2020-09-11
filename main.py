@@ -17,7 +17,7 @@ warnings.filterwarnings('ignore', 'The iteration is not making good progress')
 PI = np.pi
 
 stretch = 1
-dim = 10
+dim = 20
 offsetXY = -dim/2.0
 resolution = 0.1
 dimX, dimY, offset, res, tol, bars = dim, dim, offsetXY, resolution, 0.1, 30
@@ -27,26 +27,41 @@ stretch_dists_mm = [0, 1, 2, 3, 4, 5, 6]
 # _2G_serie = StretchSeries(stretch_dists_mm, exp_data_2G, "2G", min_pt_search_resolution=resolution, sizeX=dim, sizeY=dim, xOffset=offsetXY, yOffset=offsetXY, max_relative_diff_for_equivalent_filter=0.1, is_filter_equivalent_cavities=True)
 # _2G_serie.drawContourFromStretchSerie()
 
-# _4G_serie = StretchSeries(stretch_dists_mm, exp_data_4G, "4G", min_pt_search_resolution=resolution, sizeX=dim, sizeY=dim, xOffset=offsetXY, yOffset=offsetXY, max_relative_diff_for_equivalent_filter=0.1, is_filter_equivalent_cavities=True)
-# _4G_serie.drawContourFromStretchSerie(dots_cavity=True)
-# _4G_serie.save_state("4G_serie_10microns_filter0p1")
+_4G_serie = StretchSeries(stretch_dists_mm, exp_data_4G, "4G", min_pt_search_resolution=resolution, sizeX=dim, sizeY=dim, xOffset=offsetXY, yOffset=offsetXY, max_relative_diff_for_equivalent_filter=0.1, is_filter_equivalent_cavities=True)
+_4G_serie.drawContourFromStretchSerie(dots_cavity=True)
 # _4G_serie.drawCavitiesFromStretchSerie()
 # _4G_serie.get_evolution_of_cavity_statistics()
-# _4G_serie.histogram_3D_OfCavityEllipticy()
+# _4G_serie.histogram_3D_volume_eccentricity()
+_4G_serie.statistics_on_alignement_with_stretch_constraint()
+
+# _8G_serie = StretchSeries(stretch_dists_mm, exp_data_8G, "8G", min_pt_search_resolution=resolution, sizeX=dim, sizeY=dim, xOffset=offsetXY, yOffset=offsetXY, max_relative_diff_for_equivalent_filter=0.1, is_filter_equivalent_cavities=True)
+# _8G_serie.drawContourFromStretchSerie(dots_cavity=True)
+# _8G_serie.get_evolution_of_cavity_statistics()
+# _8G_serie.histogram_3D_OfCavityEllipticy()
+# _8G_serie.statistics_on_alignement_with_stretch_constraint()
+
+# amps = exp_data_4G.amps[0]
+# angles = exp_data_4G.angles[0]
+# pitches = exp_data_4G.pitches[0]
+# list_gratings = []
+# for j_g in range(exp_data_4G.nb_gratings):
+#     list_gratings.append(sinusoidalGrating(amps[j_g], angles[j_g], pitches[j_g]))
+# #
+# qc_4G = quasiCrystal(list_gratings, min_pt_search_resolution=resolution, sizeX=dim, sizeY=dim, xOffset=offsetXY, yOffset=offsetXY, max_relative_diff_for_equivalent_filter=0.1, is_filter_equivalent_cavities=True)
+# qc_4G.drawContour(dots_cavity=True, fname="4G_countour_zoom.png")
+# qc_4G.draw_cavities()
 
 
-amps = exp_data_4G.amps[0]
-angles = exp_data_4G.angles[0]
-pitches = exp_data_4G.pitches[0]
-list_gratings = []
-for j_g in range(exp_data_4G.nb_gratings):
-    list_gratings.append(sinusoidalGrating(amps[j_g], angles[j_g], pitches[j_g]))
-
-qc_4G = quasiCrystal(list_gratings, min_pt_search_resolution=resolution, sizeX=dim, sizeY=dim, xOffset=offsetXY, yOffset=offsetXY, max_relative_diff_for_equivalent_filter=0.2, is_filter_equivalent_cavities=True)
-
-qc_4G.drawContour(dots_cavity=True)
-qc_4G.draw_cavities()
-
+# amps = exp_data_2G.amps[0]
+# angles = exp_data_2G.angles[0]
+# pitches = exp_data_2G.pitches[0]
+# list_gratings = []
+# for j_g in range(exp_data_2G.nb_gratings):
+#     list_gratings.append(sinusoidalGrating(amps[j_g], angles[j_g], pitches[j_g]))
+#
+# qc_2G = quasiCrystal(list_gratings, min_pt_search_resolution=resolution, sizeX=dim, sizeY=dim, xOffset=offsetXY, yOffset=offsetXY, max_relative_diff_for_equivalent_filter=0.2, is_filter_equivalent_cavities=True)
+#
+# qc_2G.drawContour(dots_cavity=True)
 
 # _2G_serie = StretchSeries(stretch_dists_mm, exp_data_2G, "2G", min_pt_search_resolution=resolution, sizeX=dim, sizeY=dim, xOffset=offsetXY, yOffset=offsetXY, max_relative_diff_for_equivalent_filter=0.2, is_filter_equivalent_cavities=True)
 # _2G_serie.drawContourFromStretchSerie(dots_cavity=True)

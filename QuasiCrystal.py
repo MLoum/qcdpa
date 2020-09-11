@@ -29,7 +29,7 @@ class quasiCrystal():
     Main class of the program representing the quasiCrystal as a sum of sinusoidal Gratings.
     """
     def __init__(self, list_sinusoidal_grating, min_pt_search_resolution=0.5, sizeX=3, sizeY=3, xOffset=0, yOffset=0, max_relative_diff_for_equivalent_filter=0.1,
-                 is_filter_equivalent_cavities=True):
+                 is_filter_equivalent_cavities=True, name=None):
         """
         :param list_sinusoidal_grating: list of sinusodialGrating object
         :param min_pt_search_resolution: Resolution in µm used during the systematic scan of critical point (derivative equals zero)
@@ -47,6 +47,8 @@ class quasiCrystal():
         self.xOffset, self.yOffset = xOffset, yOffset
         self.list_critical_pt = []
         self.list_nano_cavities = []
+
+        self.name = name
 
         self.gratings = list_sinusoidal_grating
         self.min_pt_search_resolution = min_pt_search_resolution
@@ -237,7 +239,22 @@ class quasiCrystal():
             else:
                 i += 1
 
-        #Secondly two cavities are declared equivalent when they have:
+
+        # Secondly remove cavities that are on the edge of the reconstructed surface
+        # We search if the distance to the edge is inferior to the distance to the closest minimum
+
+        nb_of_cavities = len(self.list_nano_cavities)
+        i = 0
+        while i < nb_of_cavities:
+            d = np.sqrt(self.list_nano_cavities[i].distNextMinSquared)
+            xc, yc = self.list_nano_cavities[i].xc, self.list_nano_cavities[i].yc
+            if (xc + d > self.sizeX + self.xOffset) or (xc - d < -self.sizeX - self.xOffset) or (yc + d > self.sizeY + self.yOffset) or (yc - d < -self.sizeY - self.yOffset):
+                self.list_nano_cavities.pop(i)
+                nb_of_cavities = len(self.list_nano_cavities)
+            else:
+                i += 1
+
+        # Thirdly two cavities are declared equivalent when they have:
         #   -  the same number of neighbors
         #   -  the same number of Max
         #   -  the same number of Saddle
@@ -247,82 +264,40 @@ class quasiCrystal():
         nb_of_cavities = len(self.list_nano_cavities)
         i = 0   #currentCavity
         while (i < nb_of_cavities):
-            j = i + 1   # Closest cavity, since it is in principle the more similar to cavity i
+            j = i + 1
             while (j < nb_of_cavities):
-                doFilter = False
+                do_filter = False
 
                 #   -  the same number of neighbors
                 #   -  the same number of Max
                 #   -  the same number of Saddle
-                if (self.list_nano_cavities[j].nbOfNeighbors == self.list_nano_cavities[i].nbOfNeighbors) \
-                        and (self.list_nano_cavities[j].nbOfNeighborsMax == self.list_nano_cavities[i].nbOfNeighborsMax) \
-                        and (self.list_nano_cavities[j].nbOfNeighborsSad == self.list_nano_cavities[i].nbOfNeighborsSad):
+                if self.list_nano_cavities[j].nbOfNeighbors == self.list_nano_cavities[i].nbOfNeighbors:
+                    if self.list_nano_cavities[j].nbOfNeighborsMax == self.list_nano_cavities[i].nbOfNeighborsMax:
+                        if self.list_nano_cavities[j].nbOfNeighborsSad == self.list_nano_cavities[i].nbOfNeighborsSad:
+                            i_ellipsoid = self.list_nano_cavities[i].ellipsoid
+                            j_ellipsoid = self.list_nano_cavities[j].ellipsoid
 
-                    i_ellipsoid = self.list_nano_cavities[i].ellipsoid
-                    j_ellipsoid = self.list_nano_cavities[j].ellipsoid
+                            relative_eccentricity_diff = abs(i_ellipsoid.eccentricity - j_ellipsoid.eccentricity) / max(i_ellipsoid.eccentricity, j_ellipsoid.eccentricity)
+                            # relative_ellipticity_diff = abs(i_ellipsoid.ellipticity - j_ellipsoid.ellipticity) / max(i_ellipsoid.ellipticity, j_ellipsoid.ellipticity)
+                            relative_volume_diff = abs(i_ellipsoid.volume - j_ellipsoid.volume) / max(i_ellipsoid.volume, j_ellipsoid.volume)
 
-                    #TODO cela ne marche pas si on a une sphère à cause des approx numérique
-                    relativeEccentricityDiff = abs(i_ellipsoid.eccentricity - j_ellipsoid.eccentricity) / max(i_ellipsoid.eccentricity, j_ellipsoid.eccentricity)
-                    relativeEllipticityDiff = abs(i_ellipsoid.ellipticity - j_ellipsoid.ellipticity) / max(i_ellipsoid.ellipticity, j_ellipsoid.ellipticity)
-                    relativeVolumeDiff = abs(i_ellipsoid.volume - j_ellipsoid.volume) / max(i_ellipsoid.volume, j_ellipsoid.volume)
+                            threshold = self.max_relative_diff_for_equivalent_filter
+                            if relative_eccentricity_diff < threshold:
+                                if relative_volume_diff < threshold:
+                                    do_filter = True
 
-                    if (relativeEccentricityDiff < self.max_relative_diff_for_equivalent_filter) and (relativeEllipticityDiff < self.max_relative_diff_for_equivalent_filter) and (relativeVolumeDiff < self.max_relative_diff_for_equivalent_filter) :
-                        doFilter = True
-
-                if doFilter:
+                if do_filter:
                     self.list_nano_cavities.pop(j)
                     nb_of_cavities = len(self.list_nano_cavities)
-
-                #NB : if we have filtered th j-th well, no need to do j +=1
-                j += 1
+                else:
+                    #NB : if we have filtered th j-th well, no need to do j +=1
+                    j += 1
 
             i += 1
 
-    #########################
-
-    # def getNanoCavitiesStats(self, basicinfo=True, MVEE=True):
-    #     """
-    #     Affiche les dimension des puits après les avoir filtrer si demander
-    #     """
-    #
-    #     for i in range(len(self.listNanoCavities)):
-    #         if (self.listNanoCavities[i].nbOfNeighbors == 0):
-    #             print('>> Well n°', i, '(', self.listNanoCavities[i].minIdx, ')')
-    #             print('* No informations available *')
-    #         else:
-    #             print('>> Well n°', i, '(', self.listNanoCavities[i].minIdx, ')')
-    #             print('( Xc = ', self.listNanoCavities[i].xc, '; Yc = ', self.listNanoCavities[i].yc, '; Zc = ', self.listNanoCavities[i].zc,
-    #                   ')')
-    #             print(' Nb of neighbors :', self.listNanoCavities[i].nbOfNeighbors, '( Max :',
-    #                   self.listNanoCavities[i].nbOfNeighborsMax, '; Sad :',
-    #                   self.listNanoCavities[i].nbOfNeighborsSad, ')')
-    #             if (basicinfo):
-    #                 print('- Basic informations :')
-    #                 print(' min height =', self.listNanoCavities[i].heightMin)
-    #                 print(' max height =', self.listNanoCavities[i].heightMax)
-    #                 print(' min width  =', self.listNanoCavities[i].widthMin)
-    #                 print(' max width  =', self.listNanoCavities[i].widthMax)
-    #
-    #             if (MVEE):
-    #                 if (self.listNanoCavities[i].ellipsoid != -1):
-    #                     print('- Ellipsoid informations :')
-    #                     print(' eccentricity =', self.listNanoCavities[i].ellipsoid.eccentricity)
-    #                     print(' ellipticity  =', self.listNanoCavities[i].ellipsoid.ellipticity)
-    #                     print(' a diameter   =', self.listNanoCavities[i].ellipsoid.a)
-    #                     print(' b diameter   =', self.listNanoCavities[i].ellipsoid.b)
-    #                     print(' c diameter   =', self.listNanoCavities[i].ellipsoid.c)
-    #                 else:
-    #                     print('* No ellispoid informations available *')
-    #
-    #         print('\n')
-
     def get_cavities_statistics(self):
-        ellipticity_list = []
+        eccentricity_list = []
         volume_list = []
-
-        vecX = [1, 0, 0]
-        vecY = [0, 1, 0]
-        vecZ = [0, 0, 1]
 
         listOrientationX = []
         listOrientationY = []
@@ -330,14 +305,16 @@ class quasiCrystal():
 
         for cavity in self.list_nano_cavities:
             ellipsoid = cavity.ellipsoid
-            ellipticity_list.append(ellipsoid.ellipticity)
+            eccentricity_list.append(ellipsoid.eccentricity)
             volume_list.append(ellipsoid.volume)
 
-            listOrientationX.append(ellipsoid.assessOrientationWithStretchConstraint(vecX))
-            listOrientationY.append(ellipsoid.assessOrientationWithStretchConstraint(vecY))
-            listOrientationZ.append(ellipsoid.assessOrientationWithStretchConstraint(vecZ))
+            o_X, o_Y, o_Z = ellipsoid.assessOrientationWithStretchConstraint()
 
-        return np.mean(ellipticity_list), np.std(ellipticity_list), np.mean(volume_list), np.std(volume_list), np.mean(listOrientationX), np.std(listOrientationX), np.mean(listOrientationY), np.std(listOrientationY), np.mean(listOrientationZ), np.std(listOrientationZ)
+            listOrientationX.append(o_X)
+            listOrientationY.append(o_Y)
+            listOrientationZ.append(o_Z)
+
+        return np.mean(eccentricity_list), np.std(eccentricity_list), np.mean(volume_list), np.std(volume_list), np.mean(listOrientationX), np.std(listOrientationX), np.mean(listOrientationY), np.std(listOrientationY), np.mean(listOrientationZ), np.std(listOrientationZ)
 
     def drawContour(self, nb_of_level=50, fname=None, title=None, dots_critical=False, dots_cavity=False):
         """
@@ -387,14 +364,14 @@ class quasiCrystal():
 
         return cp
 
-    def drawAllQuasiCrystal(self, dots=True, coat='full', coatalpha=0.5, ellipses=False, wellidx=[], ellipsesalpha=0.5, file_save_Path=None, title=None):
+    def drawAllQuasiCrystal(self, dots=True, coat='full', coatalpha=0.5, ellipsoid=False, wellidx=[], ellipsesalpha=0.5, file_save_Path=None, title=None):
         """
         Draw the qausi-crystal surface with the critical points and the ellipsoids obtain from MVEE
 
         :param dots: Draw the criticals point
         :param coat: How to draw the surface, full or wire
         :param coatalpha:
-        :param ellipses: Draw the ellipses obtain via MVEE in the nanocavities
+        :param ellipsoid: Draw the ellipsoid obtained via MVEE in the nanocavities
         :param wellidx:
         :param ellipsesalpha: alpha blending for the ellipse
         :param file_save_Path: File path for saving the graph
@@ -424,7 +401,7 @@ class quasiCrystal():
 
         ax.view_init(60, 120)
 
-        if (dots):
+        if dots:
             for crPt in self.list_critical_pt:
                 zc = self.gratings[0].getGrattingValue(crPt[0], crPt[1])
                 for i in range(1, len(self.gratings)):
@@ -436,24 +413,34 @@ class quasiCrystal():
                 elif crPt[2] == 'M':
                     ax.scatter(crPt[0], crPt[1], zc, color='r')
 
-        if (ellipses):
+        if ellipsoid:
             sin, cos = np.sin, np.cos
             for nano_cavity in self.list_nano_cavities:
                 ellipsoid = nano_cavity.ellipsoid
-                if (ellipsoid) and (ellipsoid != -1):
+                if ellipsoid is not None and ellipsoid != -1:
                     # rx, ry, rz = 1. / np.sqrt(self.listNanoCavities[idx].ellipsoid.D)
                     u, v = np.mgrid[0:2 * PI:20j, -PI / 2:PI / 2:10j]
 
+                    # cf parametric description of an ellipsoid in wikipedia
                     def ellipse(RX, RY, RZ, u, v):
                         x = RX * cos(u) * cos(v)
                         y = RY * sin(u) * cos(v)
                         z = RZ * sin(v)
                         return x, y, z
 
-                    RX = ellipsoid.a / 2
-                    RY = ellipsoid.b / 2
-                    RZ = ellipsoid.c / 2
+                    RX = ellipsoid.rx
+                    RY = ellipsoid.ry
+                    RZ = ellipsoid.rz
+
+                    # cosmetic
+                    # RX /=2
+                    # RY /= 2
+                    # RZ /= 2
+
+                    # Stack arrays in sequence depth wise (along third axis). Takes a sequence of
+                    # arrays and stack them along the third axis to make a single array
                     E = np.dstack(ellipse(RX, RY, RZ, u, v))
+                    # self.ellipsoid.V comes from the SVD and contains the normalized eigen vectors
                     E = np.dot(E, ellipsoid.V) + ellipsoid.center
                     x, y, z = np.rollaxis(E, axis=-1)
                     ax.plot_surface(x, y, z, cstride=1, rstride=1, color='y', alpha=ellipsesalpha)
@@ -474,8 +461,15 @@ class quasiCrystal():
         plt.show()
 
     def draw_cavities(self):
+        i = 0
+        if self.name is not None:
+            base_name = self.name
+        else:
+            base_name = ""
         for cavity in self.list_nano_cavities:
-            cavity.draw(dots=True, coat='full', coatAlpha=0.5, drawEllipsoid=True, ellipseAlpha=0.5)
+            fname = base_name + "_cavity_num" + str(i) +".png"
+            cavity.draw(dots=False, coat='full', coatAlpha=0.1, drawEllipsoid=True, ellipseAlpha=0.2, fname=fname, is_draw_princ_axes=True)
+            i += 1
 
 
     def print_info_cavities(self):
